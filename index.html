@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f5f2ea">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="I-V Game">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>Current-Voltage Relation Game</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="app-shell">
+    <section class="play-area" aria-labelledby="game-title">
+      <div class="top-bar">
+        <div>
+          <p class="eyebrow">Membrane current</p>
+          <h1 id="game-title">Current-Voltage Relation Game</h1>
+        </div>
+        <div class="score-strip" aria-label="Score">
+          <span id="roundLabel">Round 1</span>
+          <span id="scoreLabel">0 / 0</span>
+          <span id="streakLabel">Streak 0</span>
+        </div>
+      </div>
+
+      <div class="canvas-wrap">
+        <canvas id="gameCanvas" width="1200" height="760" aria-label="Current-voltage graph"></canvas>
+      </div>
+
+      <div class="question-row">
+        <p id="promptText">Estimate the reversal potential from the red I-V curve.</p>
+        <div class="answer-grid" id="answerGrid" aria-label="Answer choices"></div>
+      </div>
+
+      <section class="reveal-panel" id="revealPanel" aria-live="polite" hidden>
+        <div class="verdict-burst" id="verdictBurst">
+          <p class="result-label" id="resultLabel">Result</p>
+          <p class="result-text" id="resultText"></p>
+          <p class="result-detail" id="resultDetail"></p>
+        </div>
+        <button class="primary-button" id="nextButton" type="button">Next Round</button>
+      </section>
+    </section>
+
+    <aside class="side-panel" aria-label="Game controls">
+      <section class="score-card" aria-label="Running score">
+        <div class="score-main">
+          <span id="scorePercent">0%</span>
+          <span>accuracy</span>
+        </div>
+        <div class="score-grid">
+          <p><span>Correct</span><strong id="correctCount">0</strong></p>
+          <p><span>Answered</span><strong id="attemptCount">0</strong></p>
+          <p><span>Streak</span><strong id="currentStreak">0</strong></p>
+          <p><span>Best</span><strong id="bestStreak">0</strong></p>
+        </div>
+      </section>
+
+      <div class="control-group">
+        <label class="switch-row">
+          <input id="showAxesCheckbox" type="checkbox" checked>
+          <span>Show axes</span>
+        </label>
+        <label class="switch-row">
+          <input id="showTicksCheckbox" type="checkbox">
+          <span>Show voltage ticks</span>
+        </label>
+      </div>
+
+      <div class="control-group">
+        <label for="noiseSlider">Curve subtlety</label>
+        <input id="noiseSlider" type="range" min="0" max="100" value="35">
+      </div>
+
+      <div class="control-group compact-buttons">
+        <button id="newRoundButton" type="button">New</button>
+        <button id="resetButton" type="button">Reset</button>
+      </div>
+
+      <section class="answer-key" id="answerKey" hidden>
+        <div class="legend">
+          <span><i class="swatch red"></i>I<sub>mem</sub>(V)</span>
+          <span><i class="swatch blue"></i>g(V)</span>
+          <span><i class="swatch green"></i>V - E<sub>rev</sub></span>
+        </div>
+        <dl>
+          <div><dt>E<sub>rev</sub></dt><dd id="erevText"></dd></div>
+          <div><dt>g(V)</dt><dd id="gateText"></dd></div>
+          <div><dt>Rule</dt><dd>I<sub>mem</sub> = g(V)(V - E<sub>rev</sub>)</dd></div>
+        </dl>
+      </section>
+
+      <section class="history" aria-label="Recent rounds">
+        <h2>Recent</h2>
+        <ol id="historyList"></ol>
+      </section>
+    </aside>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

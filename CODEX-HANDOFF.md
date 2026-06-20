@@ -1,4 +1,4 @@
-# Current-Voltage Relation Game Codex Handoff
+# The Current-Voltage Relation Game Codex Handoff
 
 Date: 2026-06-18
 

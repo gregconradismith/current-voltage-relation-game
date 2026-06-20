@@ -81,20 +81,27 @@ function generateRound() {
   const v0 = randomChoice(v0List);
   const v1 = randomChoice(v1List);
   const reverse = Math.random() < 0.3;
+  return buildRound({ erev, v0, v1, reverse });
+}
+
+function buildRound({ erev, v0, v1, reverse, choices = null }) {
   const subtlety = Number(els.noiseSlider.value) / 100;
   const conductanceFloor = 0.04 + subtlety * 0.08;
   const gain = 1 - subtlety * 0.25;
   const g = voltage.map(v => conductanceFloor + gain * gate(v, v0, v1, reverse));
   const driving = voltage.map(v => v - erev);
   const current = g.map((value, index) => value * driving[index]);
-  const choices = shuffledChoices(erev);
+  const answerChoices = choices ? choices.slice() : shuffledChoices(erev);
 
-  return { erev, v0, v1, reverse, g, driving, current, choices };
+  return { erev, v0, v1, reverse, g, driving, current, choices: answerChoices };
 }
 
 function shuffledChoices(answer) {
-  const nearby = erevList.filter(value => value !== answer);
-  const choices = [answer, ...nearby].sort(() => Math.random() - 0.5);
+  const choices = [answer, ...erevList.filter(value => value !== answer)];
+  for (let i = choices.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [choices[i], choices[j]] = [choices[j], choices[i]];
+  }
   return choices;
 }
 
@@ -166,10 +173,12 @@ function answer(choice) {
   els.resultText.textContent = gotIt ? 'Correct!' : 'Not quite';
   els.resultDetail.textContent = `The red curve crosses I = 0 at ${state.roundData.erev} mV.`;
   els.promptText.textContent = gotIt
-    ? 'Right: reversal is where the driving force changes sign.'
+    ? celebratoryPrompt()
     : 'Look for the zero-current crossing of the red curve.';
   els.revealPanel.classList.toggle('is-correct', gotIt);
   els.revealPanel.classList.toggle('is-incorrect', !gotIt);
+  els.verdictBurst.classList.toggle('is-correct', gotIt);
+  els.verdictBurst.classList.toggle('is-incorrect', !gotIt);
   els.answerKey.hidden = false;
   els.revealPanel.hidden = false;
   renderAnswerKey();
@@ -189,6 +198,12 @@ function updateLabels() {
   els.scorePercent.textContent = state.attempts === 0
     ? '0%'
     : `${Math.round((state.correct / state.attempts) * 100)}%`;
+}
+
+function celebratoryPrompt() {
+  if (state.streak >= 5) return `Five in a row: zero crossings are becoming muscle memory.`;
+  if (state.streak >= 3) return `Streak ${state.streak}. The sign change is easy to spot now.`;
+  return 'Right: reversal is where the driving force changes sign.';
 }
 
 function renderAnswerKey() {
@@ -383,10 +398,7 @@ els.resetButton.addEventListener('click', resetGame);
 els.showAxesCheckbox.addEventListener('change', draw);
 els.showTicksCheckbox.addEventListener('change', draw);
 els.noiseSlider.addEventListener('input', () => {
-  if (!state.revealed) {
-    state.roundData = generateRound();
-    renderChoices();
-  }
+  state.roundData = buildRound(state.roundData);
   draw();
 });
 window.addEventListener('resize', draw);

@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#eef6fb">
+  <title>Further Reading: Current-Voltage Relations</title>
+  <link rel="stylesheet" href="styles.css?v=2026-06-20-reading">
+</head>
+<body>
+  <main class="reading-shell">
+    <article class="reading-page">
+      <p class="eyebrow">Further reading</p>
+      <h1>Current-Voltage Relations</h1>
+      <p class="lede">
+        This game asks you to infer a reversal potential from an I-V curve. The
+        model is intentionally simple, but it captures a central idea in
+        conductance-based membrane modeling:
+      </p>
+      <p class="equation">I<sub>mem</sub>(V) = g(V)(V - E<sub>rev</sub>).</p>
+
+      <section>
+        <h2>What the zero crossing means</h2>
+        <p>
+          If the conductance is positive, the current is zero when
+          V = E<sub>rev</sub>. The conductance changes the size and shape of the
+          current, but the zero-current crossing is determined by the driving
+          force term V - E<sub>rev</sub>. That is the main inference task in the
+          game.
+        </p>
+      </section>
+
+      <section>
+        <h2>Conductance changes the shape</h2>
+        <p>
+          The game uses a sigmoid conductance,
+          g(V) = 0.5(1 + tanh((V - V<sub>0</sub>)/V<sub>1</sub>)), sometimes
+          reversed and with a small floor. This makes the red curve easier or
+          harder to read without changing the core relation. In real channels,
+          conductance may depend on voltage, time, ligand binding, channel
+          history, and stochastic channel state.
+        </p>
+      </section>
+
+      <section>
+        <h2>Limitations of the game model</h2>
+        <p>
+          The game suppresses capacitance, space-clamp effects, multiple ionic
+          species, and current sign-convention details. Those omissions are
+          deliberate: the goal is to isolate the algebraic role of the driving
+          force before adding dynamics.
+        </p>
+      </section>
+
+      <section>
+        <h2>On-topic resources</h2>
+        <ul class="resource-list">
+          <li><a href="https://en.wikipedia.org/wiki/Reversal_potential">Reversal potential</a>: the membrane voltage at which a current reverses direction.</li>
+          <li><a href="https://en.wikipedia.org/wiki/Nernst_equation">Nernst equation</a>: how an equilibrium potential follows from concentration ratios for one permeant ion.</li>
+          <li><a href="https://en.wikipedia.org/wiki/Membrane_potential">Membrane potential</a>: broader physiological context for voltage across cell membranes.</li>
+          <li><a href="https://en.wikipedia.org/wiki/Hodgkin%E2%80%93Huxley_model">Hodgkin-Huxley model</a>: the classic conductance-based framework in which terms like g(V)(V - E) appear.</li>
+        </ul>
+      </section>
+
+      <p class="back-link"><a href="index.html">Back to the game</a></p>
+    </article>
+  </main>
+</body>
+</html>

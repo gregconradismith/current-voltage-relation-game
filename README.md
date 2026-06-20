@@ -1,4 +1,4 @@
-# Current-Voltage Relation Game
+# The Current-Voltage Relation Game
 
 A MATLAB-free browser version of `currentvoltagegame.m`. The game shows an
 `I_mem(V)` curve and asks for the reversal potential. After each answer it

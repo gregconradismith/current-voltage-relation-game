@@ -29,3 +29,7 @@ Then open:
 ```text
 http://127.0.0.1:8765/
 ```
+
+## Codex Coordination
+
+Codex session state is tracked in `.codex/handoff.md`; durable decisions and task history may also appear in `.codex/` when useful.

@@ -7,11 +7,7 @@ reveals the conductance curve, the driving force, and the relation
 
 ## GitHub Pages
 
-Live app:
-
-```text
-https://gregconradismith.github.io/current-voltage-relation-game/
-```
+Live app: [The Current-Voltage Relation Game](https://gregconradismith.github.io/current-voltage-relation-game/)
 
 Publish this folder as the root of a GitHub Pages repository. The app uses
 relative paths, so it can also run from a project Pages URL.

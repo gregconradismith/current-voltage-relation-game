@@ -1,13 +1,13 @@
 # The Current-Voltage Relation Game Codex Handoff
 
-Date: 2026-06-18
+Date: 2026-06-21
 
 ## Repository
 
 Local folder:
 
 ```text
-/Users/greg/Library/CloudStorage/Dropbox/Main/Git/current-voltage-relation-game
+/Users/gregconradismith/Git/current-voltage-relation-game
 ```
 
 Expected GitHub Pages URL:
@@ -53,4 +53,16 @@ Then open:
 
 ```text
 http://127.0.0.1:8765/
+```
+
+## Migration Readiness Snapshot
+
+- Checked on 2026-06-21 before moving computers.
+- Non-interactive `git fetch --all --prune` completed successfully.
+- Root `README.md` points to `.codex/handoff.md` when a root README exists.
+
+Pre-edit Git state after fetch:
+
+```bash
+## main...origin/main
 ```

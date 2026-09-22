@@ -66,3 +66,26 @@ Pre-edit Git state after fetch:
 ```bash
 ## main...origin/main
 ```
+
+
+## 2026-09-22: Expanded practice questions
+
+Current checkout: `/Users/greg/Git/current-voltage-relation-game`.
+Added mixed practice and a selector for reversal potential, activation versus
+deactivation, half-maximal voltage, maximum conductance, and maximum positive
+slope conductance over the plotted voltage interval. Reveals show conductance,
+driving force, current, and topic-specific feedback. Conductance questions show
+g(V) before answering; slope questions reveal a tangent. Units are mV, pA, nS.
+
+Half-max means half of the voltage-dependent conductance change above baseline.
+Slope conductance uses the analytic dI/dV, sampled at 0.05 mV spacing. The model
+retains its tanh gate and basal conductance with randomized conductance scale.
+
+Verification: `node --check app.js`, `node tests/model.cjs` (600 cases), and
+`git diff --check` passed. Browser checks covered all five topics, scoring,
+next/reset, desktop and narrow-screen plots. Local preview uses port 8766.
+
+Publication: user authorized commit and push to origin/main. Initial push found
+an upstream coordination-guidance commit; rebased onto it without conflicts.
+Final push and remote-equality verification follow this handoff update.
+No known implementation blockers; GitHub Pages deployment has not been verified.

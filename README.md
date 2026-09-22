@@ -1,9 +1,42 @@
 # The Current-Voltage Relation Game
 
-A MATLAB-free browser version of `currentvoltagegame.m`. The game shows an
-`I_mem(V)` curve and asks for the reversal potential. After each answer it
-reveals the conductance curve, the driving force, and the relation
-`I_mem = g(V)(V - Erev)`.
+A dependency-free browser version of `currentvoltagegame.m`, with mixed practice
+or a selector for five topics:
+
+- Reversal potential from the I–V zero crossing.
+- Activation or deactivation with depolarization, inferred from the I–V curve.
+- Half-maximal activation/deactivation voltage, read from the conductance curve.
+- Maximum conductance (the high plateau of g(V)).
+- Maximum positive slope conductance dI/dV over the displayed −150 to 150 mV interval.
+
+Each answer reveals conductance, driving force, current, a topic-specific
+explanation, and the reversal crossing. Half-max questions mark V½; slope
+questions add a gold tangent at the maximum. Scores and recent history span topics.
+Changing topics or pressing New skips a round without affecting accuracy.
+
+## Model and units
+
+The original gate `a(V) = 0.5 * (1 + tanh((V - V0) / V1))` is retained;
+deactivating rounds use `1 - a(V)`. As in the earlier browser game, Curve
+subtlety sets a small basal conductance and the gating amplitude. A randomized
+conductance scale now gives `g(V) = floor + gain * a(V)` in nS, with voltage
+in mV and `I = g(V) * (V - Erev)` in pA. Controls freeze subtlety after an answer.
+
+V½ is V0: half of the voltage-dependent conductance change above baseline.
+It is not half of peak current or, with nonzero baseline, half of total gmax.
+V1 is a voltage width parameter, not a conductance. Activation/deactivation
+here describes steady-state voltage dependence; the model has no time dynamics.
+
+Slope conductance is `dI/dV = g + (V - Erev) * dg/dV`, distinct from chord
+conductance g ([reference](https://pmc.ncbi.nlm.nih.gov/articles/PMC5662042/)).
+The analytic derivative is sampled every 0.05 mV over the plotted interval;
+answers are rounded to 0.1 nS. This is the largest signed slope, not the maximum
+absolute slope. Numeric axes remain visible for estimation questions.
+
+## Validation
+
+Run `node --check app.js`, `node tests/model.cjs`, and `git diff --check`.
+Preview desktop and mobile layouts and exercise all five topics.
 
 ## GitHub Pages
 

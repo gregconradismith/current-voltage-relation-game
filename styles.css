@@ -564,3 +564,19 @@ dd {
     max-height: none;
   }
 }
+
+.topic-control {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 20px 0;
+}
+.topic-control label { font-weight: 800; }
+.topic-control span { color: var(--muted); font-size: 0.85rem; }
+select { font: inherit; max-width: 100%; min-height: 42px; border: 1px solid var(--line); border-radius: 8px; background: white; padding: 8px; }
+select:focus-visible { outline: 3px solid #93b4df; }
+.answer-button { padding: 8px; overflow-wrap: anywhere; }
+canvas { min-height: 360px; }
+
+canvas.revealed { min-height: 600px; max-height: none; }

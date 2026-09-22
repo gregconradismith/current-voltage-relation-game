@@ -28,6 +28,8 @@ const els = {
   answerKey: document.getElementById('answerKey'),
   erevText: document.getElementById('erevText'),
   gateText: document.getElementById('gateText'),
+  topicSelect: document.getElementById('topicSelect'),
+  slopeText: document.getElementById('slopeText'),
   historyList: document.getElementById('historyList'),
 };
 
@@ -47,6 +49,8 @@ const voltage = makeRange(-150, 150, 1);
 const erevList = [-100, -80, 0, 60, 120];
 const v0List = [-80, -60, -40, -20];
 const v1List = [10, 20, 30];
+
+const topics = ['reversal', 'direction', 'midpoint', 'maximum', 'slope'];
 
 const state = {
   round: 0,
@@ -77,32 +81,80 @@ function gate(v, v0, v1, reverse) {
 }
 
 function generateRound() {
-  const erev = randomChoice(erevList);
-  const v0 = randomChoice(v0List);
-  const v1 = randomChoice(v1List);
-  const reverse = Math.random() < 0.3;
-  return buildRound({ erev, v0, v1, reverse });
+  return buildRound({
+    erev: randomChoice(erevList), v0: randomChoice(v0List),
+    v1: randomChoice(v1List), reverse: Math.random() < 0.5,
+    scale: randomChoice([0.5, 1, 1.5, 2]),
+    topic: els.topicSelect.value === 'mixed' ? randomChoice(topics) : els.topicSelect.value,
+  });
 }
 
-function buildRound({ erev, v0, v1, reverse, choices = null }) {
+function conductanceAt(v, r) {
+  return r.floor + r.gain * gate(v, r.v0, r.v1, r.reverse);
+}
+
+function slopeAt(v, r) {
+  const t = Math.tanh((v - r.v0) / r.v1);
+  const derivative = r.gain * (r.reverse ? -1 : 1) * (1 - t * t) / (2 * r.v1);
+  return conductanceAt(v, r) + (v - r.erev) * derivative;
+}
+
+function buildRound({ erev, v0, v1, reverse, scale = 1, topic = 'reversal' }) {
   const subtlety = Number(els.noiseSlider.value) / 100;
-  const conductanceFloor = 0.04 + subtlety * 0.08;
-  const gain = 1 - subtlety * 0.25;
-  const g = voltage.map(v => conductanceFloor + gain * gate(v, v0, v1, reverse));
-  const driving = voltage.map(v => v - erev);
-  const current = g.map((value, index) => value * driving[index]);
-  const answerChoices = choices ? choices.slice() : shuffledChoices(erev);
-
-  return { erev, v0, v1, reverse, g, driving, current, choices: answerChoices };
+  const r = { erev, v0, v1, reverse, scale, topic,
+    floor: scale * (0.04 + subtlety * 0.08), gain: scale * (1 - subtlety * 0.25) };
+  r.g = voltage.map(v => conductanceAt(v, r));
+  r.driving = voltage.map(v => v - erev);
+  r.current = r.g.map((g, i) => g * r.driving[i]);
+  // Dense sampling of the analytic derivative over the displayed voltage interval.
+  r.peakV = -150;
+  r.peakSlope = slopeAt(-150, r);
+  for (let i = 1; i <= 6000; i += 1) {
+    const v = -150 + i * 0.05;
+    const slope = slopeAt(v, r);
+    if (slope > r.peakSlope) { r.peakSlope = slope; r.peakV = v; }
+  }
+  r.question = makeQuestion(r);
+  r.choices = shuffle(r.question.options);
+  return r;
 }
 
-function shuffledChoices(answer) {
-  const choices = [answer, ...erevList.filter(value => value !== answer)];
+function shuffle(values) {
+  const choices = values.slice();
   for (let i = choices.length - 1; i > 0; i -= 1) {
     const j = Math.floor(Math.random() * (i + 1));
     [choices[i], choices[j]] = [choices[j], choices[i]];
   }
   return choices;
+}
+
+function makeQuestion(r) {
+  const direction = r.reverse ? 'Deactivating' : 'Activating';
+  const mv = v => `${v} mV`;
+  const numeric = (value, label, prompt, detail) => {
+    const rounded = Math.round(value * 10) / 10;
+    const options = [0.4, 0.7, 1, 1.4, 1.8].map(f => (Math.max(0.1, Math.round(rounded * f * 10) / 10)).toFixed(1) + ' nS');
+    return { label, prompt, detail, answer: rounded.toFixed(1) + ' nS', options: [...new Set(options)] };
+  };
+  if (r.topic === 'direction') return {
+    label: 'Gating', answer: direction, options: ['Activating', 'Deactivating'],
+    prompt: 'Does this conductance activate or deactivate with depolarization? Infer from the red I–V curve.',
+    detail: `${direction}: g(V) ${r.reverse ? 'decreases' : 'increases'} as voltage rises. Activation describes conductance, not the sign or magnitude of current. This model describes steady-state voltage dependence, not kinetics.`,
+  };
+  if (r.topic === 'midpoint') return {
+    label: 'Half-max', answer: mv(r.v0), options: v0List.map(mv),
+    prompt: 'Estimate the half-maximal activation/deactivation voltage from the blue conductance curve.',
+    detail: `V½ = ${r.v0} mV: g(V) is halfway between its low and high plateaus (${(r.floor + r.gain / 2).toFixed(2)} nS). With basal conductance, this is half of the voltage-dependent change, not half the total maximum or half the peak current.`,
+  };
+  if (r.topic === 'maximum') return numeric(r.floor + r.gain, 'Max g',
+    'Estimate the maximum conductance g(V), in nS, from the blue curve. Choose the nearest value.',
+    `The high-conductance plateau is ${(r.floor + r.gain).toFixed(2)} nS. This is gmax; the I–V slope also includes the effect of voltage-dependent gating.`);
+  if (r.topic === 'slope') return numeric(r.peakSlope, 'Max slope',
+    'Estimate the largest positive I–V slope over −150 to 150 mV. Choose the nearest value (pA/mV = nS).',
+    `Maximum dI/dV ≈ ${r.peakSlope.toFixed(2)} nS at ${r.peakV.toFixed(1)} mV on this interval. dI/dV = g(V) + (V − Erev) dg/dV. The gold segment shows the tangent there; this is a signed maximum, not the largest absolute slope.`);
+  return { label: 'Reversal', answer: mv(r.erev), options: erevList.map(mv),
+    prompt: 'Estimate the reversal potential from the red I–V curve.',
+    detail: `The red curve crosses I = 0 at Erev = ${r.erev} mV, where the driving force changes sign.` };
 }
 
 function startRound() {
@@ -113,7 +165,9 @@ function startRound() {
   els.answerKey.hidden = true;
   els.revealPanel.className = 'reveal-panel';
   els.verdictBurst.className = 'verdict-burst';
-  els.promptText.textContent = 'Estimate the reversal potential from the red I-V curve.';
+  els.promptText.textContent = state.roundData.question.prompt;
+  els.noiseSlider.disabled = false;
+  els.showTicksCheckbox.disabled = state.roundData.topic !== 'direction';
   renderChoices();
   updateLabels();
   draw();
@@ -136,7 +190,7 @@ function renderChoices() {
     const button = document.createElement('button');
     button.className = 'answer-button';
     button.type = 'button';
-    button.textContent = `${choice} mV`;
+    button.textContent = choice;
     button.addEventListener('click', () => answer(choice));
     els.answerGrid.appendChild(button);
   });
@@ -144,7 +198,7 @@ function renderChoices() {
 
 function answer(choice) {
   if (state.revealed) return;
-  const gotIt = choice === state.roundData.erev;
+  const gotIt = choice === state.roundData.question.answer;
   state.revealed = true;
   state.attempts += 1;
   if (gotIt) {
@@ -158,23 +212,22 @@ function answer(choice) {
   state.history.unshift({
     round: state.round,
     gotIt,
-    answer: `${state.roundData.erev} mV`,
+    answer: `${state.roundData.question.label}: ${state.roundData.question.answer}`,
   });
   state.history = state.history.slice(0, 6);
 
   [...els.answerGrid.children].forEach(button => {
-    const value = Number(button.textContent.replace(' mV', ''));
+    const value = button.textContent;
     button.disabled = true;
-    button.classList.toggle('correct', value === state.roundData.erev);
+    button.classList.toggle('correct', value === state.roundData.question.answer);
     button.classList.toggle('incorrect', value === choice && !gotIt);
   });
 
   els.resultLabel.textContent = gotIt ? 'Correct' : 'Not quite';
   els.resultText.textContent = gotIt ? 'Correct!' : 'Not quite';
-  els.resultDetail.textContent = `The red curve crosses I = 0 at ${state.roundData.erev} mV.`;
-  els.promptText.textContent = gotIt
-    ? celebratoryPrompt()
-    : 'Look for the zero-current crossing of the red curve.';
+  els.resultDetail.textContent = state.roundData.question.detail;
+  els.promptText.textContent = state.roundData.question.prompt;
+  els.noiseSlider.disabled = true;
   els.revealPanel.classList.toggle('is-correct', gotIt);
   els.revealPanel.classList.toggle('is-incorrect', !gotIt);
   els.verdictBurst.classList.toggle('is-correct', gotIt);
@@ -200,16 +253,11 @@ function updateLabels() {
     : `${Math.round((state.correct / state.attempts) * 100)}%`;
 }
 
-function celebratoryPrompt() {
-  if (state.streak >= 5) return `Five in a row: zero crossings are becoming muscle memory.`;
-  if (state.streak >= 3) return `Streak ${state.streak}. The sign change is easy to spot now.`;
-  return 'Right: reversal is where the driving force changes sign.';
-}
-
 function renderAnswerKey() {
+  els.slopeText.textContent = `${state.roundData.peakSlope.toFixed(2)} nS; gmax ${(state.roundData.floor + state.roundData.gain).toFixed(2)} nS`;
   const direction = state.roundData.reverse ? 'decreases with voltage' : 'increases with voltage';
   els.erevText.textContent = `${state.roundData.erev} mV`;
-  els.gateText.textContent = `${direction}; midpoint ${state.roundData.v0} mV, slope ${state.roundData.v1} mV`;
+  els.gateText.textContent = `${direction}; midpoint ${state.roundData.v0} mV, width parameter ${state.roundData.v1} mV`;
 }
 
 function renderHistory() {
@@ -223,51 +271,42 @@ function renderHistory() {
 }
 
 function draw() {
+  canvas.classList.toggle('revealed', state.revealed);
   const rect = canvas.getBoundingClientRect();
   const ratio = window.devicePixelRatio || 1;
-  canvas.width = Math.max(640, Math.floor(rect.width * ratio));
-  canvas.height = Math.max(400, Math.floor(rect.height * ratio));
+  canvas.width = Math.round(rect.width * ratio);
+  canvas.height = Math.round(rect.height * ratio);
   ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
-
-  const width = canvas.width / ratio;
-  const height = canvas.height / ratio;
+  const width = rect.width;
+  const height = rect.height;
   ctx.clearRect(0, 0, width, height);
   ctx.fillStyle = colors.paper;
   ctx.fillRect(0, 0, width, height);
-
-  if (state.revealed) {
-    const topHeight = height * 0.48;
-    drawPlot({
-      x: voltage,
-      series: [
-        { values: state.roundData.g.map(value => value * maxAbs(state.roundData.current)), color: colors.blue, label: 'g(V) scaled' },
-        { values: state.roundData.driving, color: colors.green, label: 'V - Erev' },
-      ],
-      rect: { x: 46, y: 28, width: width - 72, height: topHeight - 48 },
-      title: 'g(V) and driving force',
-    });
-    drawPlot({
-      x: voltage,
-      series: [{ values: state.roundData.current, color: colors.red, label: 'Imem(V)' }],
-      rect: { x: 46, y: topHeight + 24, width: width - 72, height: height - topHeight - 66 },
-      title: 'Imem(V)',
-      markerX: state.roundData.erev,
-    });
-  } else {
-    drawPlot({
-      x: voltage,
-      series: [{ values: state.roundData.current, color: colors.red, label: 'Imem(V)' }],
-      rect: { x: 46, y: 32, width: width - 76, height: height - 76 },
-      title: 'Imem(V)',
-    });
+  const r = state.roundData;
+  const showG = state.revealed || ['midpoint', 'maximum'].includes(r.topic);
+  const area = (y, h) => ({ x: 52, y, width: width - 72, height: h });
+  const split = state.revealed ? 0.32 : 0.44;
+  if (showG) {
+    drawPlot({ x: voltage, series: [{ values: r.g, color: colors.blue, label: 'g(V)' }],
+      rect: area(28, height * split - 48), title: 'Conductance (nS)',
+      markerX: state.revealed && r.topic === 'midpoint' ? r.v0 : null, markerLabel: 'V½' });
   }
+  if (state.revealed) {
+    drawPlot({ x: voltage, series: [{ values: r.driving, color: colors.green, label: 'V − Erev' }],
+      rect: area(height * split + 28, height * split - 60), title: 'Driving force (mV)' });
+  }
+  const currentStart = state.revealed ? 0.64 : 0.44;
+  drawPlot({ x: voltage, series: [{ values: r.current, color: colors.red, label: 'I(V)' }],
+    rect: showG ? area(height * currentStart + 28, height * (1 - currentStart) - 64) : area(32, height - 72),
+    title: 'Current (pA)', markerX: state.revealed ? r.erev : null,
+    tangent: state.revealed && r.topic === 'slope' ? r : null });
 }
 
-function drawPlot({ x, series, rect, title, markerX = null }) {
+function drawPlot({ x, series, rect, title, markerX = null, markerLabel = 'Erev', tangent = null }) {
   const allValues = series.flatMap(item => item.values);
   let yMin = Math.min(...allValues, 0);
   let yMax = Math.max(...allValues, 0);
-  const margin = Math.max(1, (yMax - yMin) * 0.12);
+  const margin = Math.max(0.01, (yMax - yMin) * 0.12);
   yMin -= margin;
   yMax += margin;
   const xMin = x[0];
@@ -284,8 +323,8 @@ function drawPlot({ x, series, rect, title, markerX = null }) {
     ctx.stroke();
   }
 
-  if (els.showTicksCheckbox.checked) {
-    for (let value = -100; value <= 100; value += 50) {
+  if (els.showTicksCheckbox.checked || state.roundData.topic !== 'direction') {
+    for (let value = -100; value <= 100; value += (rect.width < 250 ? 100 : 50)) {
       const xPos = xToCanvas(value, rect, xMin, xMax);
       ctx.beginPath();
       ctx.moveTo(xPos, rect.y);
@@ -304,7 +343,24 @@ function drawPlot({ x, series, rect, title, markerX = null }) {
     drawAxisLine(rect, xMin, xMax, yMin, yMax, 0, 'y');
   }
 
+  ctx.fillStyle = colors.muted;
+  ctx.font = '11px ui-monospace, Menlo, monospace';
+  ctx.textAlign = 'right';
+  for (let i = 0; i <= 4; i += 1) {
+    const value = yMin + (yMax - yMin) * i / 4;
+    ctx.fillText(value.toFixed(yMax < 10 ? 1 : 0), rect.x - 6, yToCanvas(value, rect, yMin, yMax) + 4);
+  }
+  ctx.textAlign = 'right';
+  ctx.fillText('V (mV)', rect.x + rect.width, rect.y + rect.height + 30);
+  ctx.textAlign = 'left';
   series.forEach(item => drawSeries(x, item.values, rect, xMin, xMax, yMin, yMax, item.color));
+  if (tangent) {
+    const v = tangent.peakV;
+    const center = conductanceAt(v, tangent) * (v - tangent.erev);
+    const halfWidth = Math.min(18, (yMax - yMin) * 0.15 / tangent.peakSlope);
+    const ends = [Math.max(-150, v - halfWidth), Math.min(150, v + halfWidth)];
+    drawSeries(ends, ends.map(x => center + (x - v) * tangent.peakSlope), rect, xMin, xMax, yMin, yMax, colors.amber);
+  }
 
   if (markerX !== null) {
     const xPos = xToCanvas(markerX, rect, xMin, xMax);
@@ -318,13 +374,13 @@ function drawPlot({ x, series, rect, title, markerX = null }) {
     ctx.setLineDash([]);
     ctx.fillStyle = colors.ink;
     ctx.font = '700 13px ui-sans-serif, system-ui';
-    ctx.fillText(`Erev ${markerX} mV`, Math.min(xPos + 8, rect.x + rect.width - 86), rect.y + 18);
+    ctx.fillText(`${markerLabel} ${markerX} mV`, Math.min(xPos + 8, rect.x + rect.width - 86), rect.y + 36);
   }
 
   ctx.fillStyle = colors.ink;
   ctx.font = '800 16px ui-sans-serif, system-ui';
   ctx.fillText(title, rect.x, rect.y - 10);
-  drawLegend(series, rect);
+  if (rect.width >= 250) drawLegend(series, rect);
   ctx.restore();
 }
 
@@ -392,13 +448,16 @@ function maxAbs(values) {
   return Math.max(...values.map(value => Math.abs(value)), 1);
 }
 
+els.topicSelect.addEventListener('change', startRound);
 els.nextButton.addEventListener('click', startRound);
 els.newRoundButton.addEventListener('click', startRound);
 els.resetButton.addEventListener('click', resetGame);
 els.showAxesCheckbox.addEventListener('change', draw);
 els.showTicksCheckbox.addEventListener('change', draw);
 els.noiseSlider.addEventListener('input', () => {
+  if (state.revealed) return;
   state.roundData = buildRound(state.roundData);
+  renderChoices();
   draw();
 });
 window.addEventListener('resize', draw);

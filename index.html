@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-title" content="The Current-Voltage Relation Game">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>The Current-Voltage Relation Game</title>
-  <link rel="stylesheet" href="styles.css?v=2026-06-20-reading">
+  <link rel="stylesheet" href="styles.css?v=2026-09-22-topics">
   <script data-goatcounter="https://gregconradismith.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
 </head>
 <body>
@@ -26,6 +26,18 @@
         </div>
       </div>
 
+      <div class="topic-control">
+        <label for="topicSelect">Practice</label>
+        <select id="topicSelect">
+          <option value="mixed">Mixed questions</option>
+          <option value="reversal">Reversal potential</option>
+          <option value="direction">Activation or deactivation</option>
+          <option value="midpoint">Half-maximal voltage</option>
+          <option value="maximum">Maximum conductance</option>
+          <option value="slope">Maximum slope conductance</option>
+        </select>
+        <span>Voltage increases to the right →</span>
+      </div>
       <div class="canvas-wrap">
         <canvas id="gameCanvas" width="1200" height="760" aria-label="Current-voltage graph"></canvas>
       </div>
@@ -66,7 +78,7 @@
         </label>
         <label class="switch-row">
           <input id="showTicksCheckbox" type="checkbox">
-          <span>Show voltage ticks</span>
+          <span>Show voltage ticks (always on for estimates)</span>
         </label>
       </div>
 
@@ -84,11 +96,14 @@
         <div class="legend">
           <span><i class="swatch red"></i>I<sub>mem</sub>(V)</span>
           <span><i class="swatch blue"></i>g(V)</span>
-          <span><i class="swatch green"></i>V - E<sub>rev</sub></span>
+          <span><i class="swatch green"></i>V − E<sub>rev</sub></span>
+
         </div>
         <dl>
           <div><dt>E<sub>rev</sub></dt><dd id="erevText"></dd></div>
           <div><dt>g(V)</dt><dd id="gateText"></dd></div>
+          <div><dt>Max slope</dt><dd id="slopeText"></dd></div>
+          <div><dt>Driving force</dt><dd>V − E<sub>rev</sub> (mV)</dd></div>
           <div><dt>Rule</dt><dd>I<sub>mem</sub> = g(V)(V - E<sub>rev</sub>)</dd></div>
         </dl>
       </section>
@@ -104,6 +119,6 @@
     </aside>
   </main>
 
-  <script src="app.js?v=2026-06-20"></script>
+  <script src="app.js?v=2026-09-22-topics"></script>
 </body>
 </html>
